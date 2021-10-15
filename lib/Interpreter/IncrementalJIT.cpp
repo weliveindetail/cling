@@ -337,7 +337,7 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& exe,
   m_NotifyObjectLoaded(*this),
   m_ObjectLayer(m_SymbolMap, m_ES,
                 [this] (llvm::orc::VModuleKey) {
-                  return ObjectLayerT::Resources{llvm::make_unique<Azog>(*this),
+                  return ObjectLayerT::Resources{std::make_unique<Azog>(*this),
                       this->m_Resolver};
                 },
                 m_NotifyObjectLoaded, NotifyFinalizedT(*this)),
