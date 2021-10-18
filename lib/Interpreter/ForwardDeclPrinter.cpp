@@ -215,14 +215,15 @@ namespace cling {
        const FileEntry* FromFile = nullptr;
        const DirectoryLookup* CurDir = nullptr;
 
-       FE = PP.LookupFile(fileNameLoc, FileName, isAngled, FromDir, FromFile,
+       Optional<clang::FileEntryRef> FERef =
+            PP.LookupFile(fileNameLoc, FileName, isAngled, FromDir, FromFile,
                           CurDir, /*SearchPath*/ 0,
                           /*RelativePath*/ 0, /*suggestedModule*/ 0,
                           /*IsMapped*/ 0, /*IsFramework*/ nullptr,
                           /*SkipCache*/ false,
                           /*OpenFile*/ false, /*CacheFail*/ true);
        // Return true if we can '#include' the given filename
-       return FE != nullptr;
+       return FERef != None;
      };
 
      SourceLocation spellingLoc = m_SMgr.getSpellingLoc(D->getBeginLoc());

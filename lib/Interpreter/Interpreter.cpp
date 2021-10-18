@@ -1443,13 +1443,14 @@ namespace cling {
     Preprocessor& PP = getCI()->getPreprocessor();
     // PP::LookupFile uses it to issue 'nice' diagnostic
     SourceLocation fileNameLoc;
-    FE = PP.LookupFile(fileNameLoc, canonicalFile, isAngled, FromDir, FromFile,
+    Optional<FileEntryRef> FERef =
+         PP.LookupFile(fileNameLoc, canonicalFile, isAngled, FromDir, FromFile,
                        CurDir, /*SearchPath*/0, /*RelativePath*/ 0,
                        /*suggestedModule*/0, 0 /*IsMapped*/,
                        /*IsFrameworkFound*/ nullptr, /*SkipCache*/false,
                        /*OpenFile*/ false, /*CacheFail*/ false);
-    if (FE)
-      return FE->getName();
+    if (FERef)
+      return FERef->getName();
     return getDynamicLibraryManager()->lookupLibrary(canonicalFile);
   }
 
