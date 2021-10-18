@@ -1702,8 +1702,8 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
     DClient.BeginSourceFile(CI->getLangOpts(), &PP);
 
     for (const auto& ModuleMapFile : FrontendOpts.ModuleMapFiles) {
-      if (auto* File = FM.getFile(ModuleMapFile))
-        PP.getHeaderSearchInfo().loadModuleMapFile(File, /*IsSystem*/ false);
+      if (auto FileOrErr = FM.getFile(ModuleMapFile))
+        PP.getHeaderSearchInfo().loadModuleMapFile(*FileOrErr, /*IsSystem*/ false);
       else
         CI->getDiagnostics().Report(diag::err_module_map_not_found)
            << ModuleMapFile;
