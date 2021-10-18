@@ -1124,7 +1124,7 @@ namespace cling {
       Sema& _S;
       ResetDiagSuppression(Sema &S, bool Old): _Old(Old), _S(S) {}
       ~ResetDiagSuppression() {
-        _S.getDiagnostics().setSuppressAllDiagnostics();
+        _S.getDiagnostics().setSuppressAllDiagnostics(true);
       }
     } DiagSuppressionRAII(S, OldSuppressAllDiagnostics);
 

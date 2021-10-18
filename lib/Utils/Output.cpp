@@ -25,10 +25,11 @@ namespace cling {
         raw_ostream& changeColor(enum Colors colors, bool bold, bool bg) {
           if (m_Colorize) {
             if (llvm::sys::Process::ColorNeedsFlush()) flush();
+            char code = static_cast<char>(colors);
             if (const char* colorcode =
                     (colors == SAVEDCOLOR)
                         ? llvm::sys::Process::OutputBold(bg)
-                        : llvm::sys::Process::OutputColor(colors, bold, bg))
+                        : llvm::sys::Process::OutputColor(code, bold, bg))
               write(colorcode, strlen(colorcode));
           }
           return *this;

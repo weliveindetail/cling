@@ -812,6 +812,7 @@ namespace cling {
     llvm::APInt ArraySize(bitSize, Value.size() + 1);
     const QualType CCArray = m_Context->getConstantArrayType(CChar,
                                                             ArraySize,
+                                                            nullptr,
                                                             ArrayType::Normal,
                                                           /*IndexTypeQuals=*/0);
 

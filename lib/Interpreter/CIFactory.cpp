@@ -1394,8 +1394,8 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
       return nullptr;
     }
 
-    clang::CompilerInvocation::CreateFromArgs(*InvocationPtr, CC1Args->data() + 1,
-                                              CC1Args->data() + CC1Args->size(),
+    ArrayRef<const char *> Args(CC1Args->data() + 1, CC1Args->size() - 1);
+    clang::CompilerInvocation::CreateFromArgs(*InvocationPtr, Args,
                                               *Diags);
     // We appreciate the error message about an unknown flag (or do we? if not
     // we should switch to a different DiagEngine for parsing the flags).
@@ -1657,7 +1657,7 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
     CGOpts.OptimizationLevel = 0;
     // Taken from a -O2 run of clang:
     CGOpts.DiscardValueNames = 1;
-    CGOpts.OmitLeafFramePointer = 1;
+    CGOpts.setFramePointer(clang::CodeGenOptions::FramePointerKind::NonLeaf);
     CGOpts.UnrollLoops = 1;
     CGOpts.VectorizeLoop = 1;
     CGOpts.VectorizeSLP = 1;

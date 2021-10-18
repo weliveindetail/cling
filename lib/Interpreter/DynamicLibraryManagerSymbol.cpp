@@ -419,10 +419,11 @@ static Expected<StringRef> getDynamicStrTab(const ELFFile<ELFT>* Elf) {
 
 static llvm::StringRef GetGnuHashSection(llvm::object::ObjectFile *file) {
   for (auto S : file->sections()) {
-    llvm::StringRef name;
-    S.getName(name);
-    if (name == ".gnu.hash") {
-      return llvm::cantFail(S.getContents());
+    if (auto name = S.getName()) {
+      if (*name == ".gnu.hash")
+        return llvm::cantFail(S.getContents());
+    } else {
+      llvm::consumeError(name.takeError());
     }
   }
   return "";
@@ -1117,9 +1118,12 @@ namespace cling {
 
     if (llvm::isa<llvm::object::ELFObjectFileBase>(*file)) {
       for (auto S : file->sections()) {
-        llvm::StringRef name;
-        S.getName(name);
-        if (name == ".text") {
+        auto name = S.getName();
+        if (!name) {
+          llvm::consumeError(name.takeError());
+          continue;
+        }
+        if (*name == ".text") {
           // Check if the library has only debug symbols, usually when
           // stripped with objcopy --only-keep-debug. This check is done by
           // reading the manual of objcopy and inspection of stripped with
