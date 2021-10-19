@@ -83,7 +83,7 @@ private:
         auto Name = NameOrError.get();
         if (m_JIT.m_SymbolMap.find(Name) == m_JIT.m_SymbolMap.end()) {
           llvm::JITSymbol Sym
-            = m_JIT.m_CompileLayer.findSymbolIn(K, Name, true);
+            = m_JIT.m_CompileLayer.findSymbolIn(K, Name.str(), true);
           if (auto Addr = Sym.getAddress())
             m_JIT.m_SymbolMap[Name] = *Addr;
         }

@@ -284,8 +284,8 @@ namespace cling {
 
     template <class T>
     ExecutionResult jitInitOrWrapper(llvm::StringRef funcname, T& fun) const {
-      fun = utils::UIntToFunctionPtr<T>(m_JIT->getSymbolAddress(funcname,
-                                                              false /*dlsym*/));
+      fun = utils::UIntToFunctionPtr<T>(
+          m_JIT->getSymbolAddress(funcname.str(), false /*dlsym*/));
 
       // check if there is any unresolved symbol in the list
       if (diagnoseUnresolvedSymbols(funcname, "function") || !fun)

@@ -565,7 +565,7 @@ namespace cling {
       cling::errs() << Strm.str();
 
     Transaction *T;
-    declare(Strm.str(), &T);
+    declare(Strm.str().str(), &T);
     return T;
   }
 
@@ -1099,7 +1099,7 @@ namespace cling {
     Strm << "void ";
     makeUniqueName(Strm, ID);
     Strm << "(void* vpClingValue) {\n ";
-    return Strm.str();
+    return Strm.str().str();
   }
 
   void Interpreter::createUniqueName(std::string &Out) {
@@ -1257,7 +1257,7 @@ namespace cling {
     bool savedAccessControl = LO.AccessControl;
     LO.AccessControl = withAccessControl;
     T = nullptr;
-    cling::Interpreter::CompilationResult CR = declare(code, &T);
+    cling::Interpreter::CompilationResult CR = declare(code.str(), &T);
     LO.AccessControl = savedAccessControl;
 
     Diag.setSeverity(clang::diag::ext_nested_name_member_ref_lookup_ambiguous,
@@ -1430,7 +1430,7 @@ namespace cling {
   std::string Interpreter::lookupFileOrLibrary(llvm::StringRef file) {
     std::string canonicalFile = DynamicLibraryManager::normalizePath(file);
     if (canonicalFile.empty())
-      canonicalFile = file;
+      canonicalFile = file.str();
     const FileEntry* FE = 0;
 
     //Copied from clang's PPDirectives.cpp
@@ -1451,7 +1451,7 @@ namespace cling {
                        /*IsFrameworkFound*/ nullptr, /*SkipCache*/false,
                        /*OpenFile*/ false, /*CacheFail*/ false);
     if (FERef)
-      return FERef->getName();
+      return FERef->getName().str();
     return getDynamicLibraryManager()->lookupLibrary(canonicalFile);
   }
 

@@ -284,7 +284,7 @@ namespace {
   #ifdef _LIBCPP_VERSION
         // Try to use a version of clang that is located next to cling
         // in case cling was built with a new/custom libc++
-        std::string clang = llvm::sys::path::parent_path(clingBin);
+        std::string clang = llvm::sys::path::parent_path(clingBin).str();
         buffer.assign(clang);
         llvm::sys::path::append(buffer, "clang");
         clang.assign(&buffer[0], buffer.size());
@@ -667,50 +667,50 @@ namespace {
     std::string MOverlay;
 #ifdef _WIN32
     maybeAppendOverlayEntry(vcIncLoc.str(), "vcruntime.modulemap",
-                            clingIncLoc.str(), MOverlay,
+                            clingIncLoc.str().str(), MOverlay,
                             /*RegisterModuleMap=*/ true,
                             /*AllowModulemapOverride=*/ false);
     maybeAppendOverlayEntry(servIncLoc.str(), "services_msvc.modulemap",
-                            clingIncLoc.str(), MOverlay,
+                            clingIncLoc.str().str(), MOverlay,
                             /*RegisterModuleMap=*/ true,
                             /*AllowModulemapOverride=*/ false);
     maybeAppendOverlayEntry(cIncLoc.str(), "libc_msvc.modulemap",
-                            clingIncLoc.str(), MOverlay,
+                            clingIncLoc.str().str(), MOverlay,
                             /*RegisterModuleMap=*/ true,
                             /*AllowModulemapOverride=*/ false);
     maybeAppendOverlayEntry(stdIncLoc.str(), "std_msvc.modulemap",
-                            clingIncLoc.str(), MOverlay,
+                            clingIncLoc.str().str(), MOverlay,
                             /*RegisterModuleMap=*/ true,
                             /*AllowModulemapOverride=*/ false);
 #else
-    maybeAppendOverlayEntry(cIncLoc.str(), "libc.modulemap", clingIncLoc.str(),
+    maybeAppendOverlayEntry(cIncLoc.str(), "libc.modulemap", clingIncLoc.str().str(),
                             MOverlay, /*RegisterModuleMap=*/ true,
                             /*AllowModulemapOverride=*/true);
-    maybeAppendOverlayEntry(stdIncLoc.str(), "std.modulemap", clingIncLoc.str(),
+    maybeAppendOverlayEntry(stdIncLoc.str(), "std.modulemap", clingIncLoc.str().str(),
                             MOverlay, /*RegisterModuleMap=*/ true,
                             /*AllowModulemapOverride=*/true);
 #endif // _WIN32
 
     if (!tinyxml2IncLoc.empty())
       maybeAppendOverlayEntry(tinyxml2IncLoc.str(), "tinyxml2.modulemap",
-                              clingIncLoc.str(), MOverlay,
+                              clingIncLoc.str().str(), MOverlay,
                               /*RegisterModuleMap=*/ false,
                               /*AllowModulemapOverride=*/ false);
     if (!cudaIncLoc.empty())
       maybeAppendOverlayEntry(cudaIncLoc.str(), "cuda.modulemap",
-                              clingIncLoc.str(), MOverlay,
+                              clingIncLoc.str().str(), MOverlay,
                               /*RegisterModuleMap=*/ true,
                               /*AllowModulemapOverride=*/ false);
     if (!vcVcIncLoc.empty())
       maybeAppendOverlayEntry(vcVcIncLoc.str(), "vc.modulemap",
-                              clingIncLoc.str(), MOverlay,
+                              clingIncLoc.str().str(), MOverlay,
                               /*RegisterModuleMap=*/ true,
                               /*AllowModulemapOverride=*/ false);
     if (!boostIncLoc.empty()) {
       // Add the modulemap in the include/boost folder not in include.
       llvm::sys::path::append(boostIncLoc, "boost");
       maybeAppendOverlayEntry(boostIncLoc.str(), "boost.modulemap",
-                              clingIncLoc.str(), MOverlay,
+                              clingIncLoc.str().str(), MOverlay,
                               /*RegisterModuleMap=*/ false,
                               /*AllowModulemapOverride=*/ false);
     }
@@ -1492,6 +1492,8 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
               Diags->Reset(true);
             // Clear the include so no one else uses it.
             std::string().swap(PCHFile);
+            assert(Invocation.getPreprocessorOpts().ImplicitPCHInclude.empty() &&
+                   "Implicit invariant with swap just before");
           }
         }
         // All we care about is if Language and Target options were successful.
@@ -1619,7 +1621,7 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
           +CI->getFrontendOpts().BuildingImplicitModule));
       Consumers.push_back(
           CI->getPCHContainerWriter().CreatePCHContainerGenerator(
-              *CI, "", ModuleOutputFile, std::move(OS), PCHBuff));
+              *CI, "", ModuleOutputFile.str(), std::move(OS), PCHBuff));
 
       // Set the current module name for clang. With that clang doesn't start
       // to build the current module on demand when we include a header

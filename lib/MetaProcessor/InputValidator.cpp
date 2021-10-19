@@ -105,7 +105,7 @@ namespace cling {
     if (!m_Input.empty()) {
       m_Input.append("\n");
     }
-    m_Input.append(line);
+    m_Input.append(line.str());
     return Res;
   }
 

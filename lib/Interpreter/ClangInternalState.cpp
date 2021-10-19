@@ -120,7 +120,7 @@ namespace cling {
     if (llvm::sys::fs::createUniqueFile(TempPath.str(), fd, TempPath)
         != std::errc::no_such_file_or_directory) {
       OS.reset(new llvm::raw_fd_ostream(fd, /*shouldClose=*/true));
-      OSFile = TempPath.str();
+      OSFile = TempPath.str().str();
     }
 
     // Make sure the out stream file gets removed if we crash.
@@ -263,7 +263,7 @@ namespace cling {
       // print the FileName, because semantically it is not there.
       if (!I->second)
         continue;
-      std::string fileName(FE->getName());
+      std::string fileName(FE->getName().str());
       if (!(fileName.compare(0, 5, "/usr/") == 0 &&
             fileName.find("/bits/") != std::string::npos) &&
           fileName.compare("-")) {

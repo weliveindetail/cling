@@ -84,7 +84,7 @@ namespace utils {
     if (!mangleCtx->shouldMangleDeclName(D)) {
       IdentifierInfo *II = D->getIdentifier();
       assert(II && "Attempt to mangle unnamed decl.");
-      mangledName = II->getName();
+      mangledName = II->getName().str();
       return;
     }
 

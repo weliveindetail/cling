@@ -292,20 +292,21 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& exe,
     [&](std::shared_ptr<llvm::orc::AsynchronousSymbolQuery> Q,
         llvm::orc::SymbolNameSet Symbols) {
       return llvm::orc::lookupWithLegacyFn(m_ES, *Q, Symbols,
-        [&](const std::string& Name) {
-          if (auto Sym = getSymbolAddressWithoutMangling(Name, true)) {
+        [&](StringRef Name) {
+          std::string NameStr = Name.str();
+          if (auto Sym = getSymbolAddressWithoutMangling(NameStr, true)) {
             if (auto AddrOrErr = Sym.getAddress())
               return JITSymbol(*AddrOrErr, Sym.getFlags());
             else
               llvm_unreachable("Handle the error case");
           }
 
-          const std::string* NameNP = &Name;
+          const std::string* NameNP = &NameStr;
 #ifdef MANGLE_PREFIX
           std::string NameNoPrefix;
           const size_t PrfxLen = strlen(MANGLE_PREFIX);
-          if (!Name.compare(0, PrfxLen, MANGLE_PREFIX)) {
-            NameNoPrefix = Name.substr(PrfxLen);
+          if (!NameStr.compare(0, PrfxLen, MANGLE_PREFIX)) {
+            NameNoPrefix = NameStr.substr(PrfxLen);
             NameNP = &NameNoPrefix;
           }
 #endif
@@ -396,9 +397,9 @@ std::pair<void*, bool>
 IncrementalJIT::lookupSymbol(llvm::StringRef Name, void *InAddr, bool Jit) {
   // FIXME: See comments on DLSym below.
 #if !defined(_WIN32)
-  void* Addr = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol(Name);
+  void* Addr = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol(Name.str());
 #else
-  void* Addr = const_cast<void*>(platform::DLSym(Name));
+  void* Addr = const_cast<void*>(platform::DLSym(Name.str()));
 #endif
 
   if (InAddr && (!Addr || Jit)) {
