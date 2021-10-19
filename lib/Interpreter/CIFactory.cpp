@@ -921,7 +921,7 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
     // Sanity check that clang delivered the language standard requested
     if (CompilerOpts.DefaultLanguage(&LangOpts)) {
       switch (CxxStdCompiledWith()) {
-        case 20: assert(LangOpts.CPlusPlus2a && "Language version mismatch");
+        case 20: assert(LangOpts.CPlusPlus20 && "Language version mismatch");
           LLVM_FALLTHROUGH;
         case 17: assert(LangOpts.CPlusPlus17 && "Language version mismatch");
           LLVM_FALLTHROUGH;
