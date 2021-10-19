@@ -849,9 +849,13 @@ namespace cling {
     uint32_t SymbolsCount = 0;
     std::list<llvm::StringRef> symbols;
     for (const llvm::object::SymbolRef &S : BinObjFile->symbols()) {
-      uint32_t Flags = S.getFlags();
+      Expected<uint32_t> Flags = S.getFlags();
+      if (!Flags) {
+        llvm::consumeError(Flags.takeError());
+        llvm_unreachable("Handle this error");
+      }
       // Do not insert in the table symbols flagged to ignore.
-      if (Flags & IgnoreSymbolFlags)
+      if (*Flags & IgnoreSymbolFlags)
         continue;
 
       // Note, we are at last resort and loading library based on a weak
@@ -882,9 +886,13 @@ namespace cling {
       const auto *ElfObj = cast<llvm::object::ELFObjectFileBase>(BinObjFile);
 
       for (const object::SymbolRef &S : ElfObj->getDynamicSymbolIterators()) {
-        uint32_t Flags = S.getFlags();
+        Expected<uint32_t> Flags = S.getFlags();
+        if (!Flags) {
+          llvm::consumeError(Flags.takeError());
+          llvm_unreachable("Handle this error");
+        }
         // DO NOT insert to table if symbol was undefined
-        if (Flags & llvm::object::SymbolRef::SF_Undefined)
+        if (*Flags & llvm::object::SymbolRef::SF_Undefined)
           continue;
 
         // Note, we are at last resort and loading library based on a weak
@@ -1018,9 +1026,13 @@ namespace cling {
       [&library_filename](llvm::iterator_range<llvm::object::symbol_iterator> range,
          unsigned IgnoreSymbolFlags, llvm::StringRef mangledName) -> bool {
       for (const llvm::object::SymbolRef &S : range) {
-        uint32_t Flags = S.getFlags();
+        Expected<uint32_t> Flags = S.getFlags();
+        if (!Flags) {
+          llvm::consumeError(Flags.takeError());
+          llvm_unreachable("Handle this error");
+        }
         // Do not insert in the table symbols flagged to ignore.
-        if (Flags & IgnoreSymbolFlags)
+        if (*Flags & IgnoreSymbolFlags)
           continue;
 
         // Note, we are at last resort and loading library based on a weak

@@ -71,7 +71,11 @@ private:
 
       for (const auto &Symbol: Object.symbols()) {
         auto Flags = Symbol.getFlags();
-        if (Flags & llvm::object::BasicSymbolRef::SF_Undefined)
+        if (!Flags) {
+          llvm::consumeError(Flags.takeError());
+          llvm_unreachable("Handle this error");
+        }
+        if (*Flags & llvm::object::BasicSymbolRef::SF_Undefined)
           continue;
         // FIXME: this should be uncommented once we serve incremental
         // modules from a TU module.
