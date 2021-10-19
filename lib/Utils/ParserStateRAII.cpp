@@ -50,7 +50,7 @@ cling::ParserStateRAII::~ParserStateRAII() {
   //
   {
     // Cleanup the TemplateIds before swapping the previous set back.
-    DestroyTemplateIdAnnotationsRAIIObj CleanupTemplateIds(*P);
+    Parser::DestroyTemplateIdAnnotationsRAIIObj CleanupTemplateIds(*P);
   }
   P->TemplateIds.swap(OldTemplateIds);
   if (SkipToEOF)

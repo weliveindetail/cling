@@ -777,7 +777,8 @@ namespace cling {
       return 0;
     }
     if (P.getCurToken().getKind() == tok::annot_typename) {
-      ParsedType T = P.getTypeAnnotation(const_cast<Token&>(P.getCurToken()));
+      clang::TypeResult TR = P.getTypeAnnotation(const_cast<Token&>(P.getCurToken()));
+      ParsedType T = TR.get();
       // Only accept the parse if we consumed all of the name.
       if (P.NextToken().getKind() == clang::tok::eof)
         if (!T.get().isNull()) {
@@ -1393,11 +1394,13 @@ namespace cling {
       Decl *decl = llvm::dyn_cast<Decl>(foundDC);
       getContextAndSpec(SS,decl,Context,S);
     }
-    if (P.ParseUnqualifiedId(SS, /*EnteringContext*/false,
+    if (P.ParseUnqualifiedId(SS, ParsedType(),
+                             /*ObjectHadErrors*/false,
+                             /*EnteringContext*/false,
                              /*AllowDestructorName*/true,
                              /*AllowConstructorName*/true,
                              /*AllowDeductionGuide*/ false,
-                             ParsedType(), &TemplateKWLoc,
+                             &TemplateKWLoc,
                              FuncId)) {
       // Failed parse, cleanup.
       return false;
