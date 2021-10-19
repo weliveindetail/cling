@@ -94,8 +94,8 @@ namespace utils {
       //Ctor_Complete,          // Complete object ctor
       //Ctor_Base,              // Base object ctor
       //Ctor_CompleteAllocating // Complete object allocating ctor (unused)
-      mangleCtx->mangleCXXCtor(cast<CXXConstructorDecl>(D),
-                               GD.getCtorType(), RawStr);
+      mangleCtx->mangleName(
+          GlobalDecl(cast<CXXConstructorDecl>(D), GD.getCtorType()), RawStr);
       break;
 
     case Decl::CXXDestructor:
@@ -110,8 +110,8 @@ namespace utils {
       } else
 #endif
       {
-        mangleCtx->mangleCXXDtor(cast<CXXDestructorDecl>(D),
-                                 GD.getDtorType(), RawStr);
+        mangleCtx->mangleName(
+            GlobalDecl(cast<CXXDestructorDecl>(D), GD.getDtorType()), RawStr);
       }
       break;
 
