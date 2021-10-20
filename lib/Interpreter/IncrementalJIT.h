@@ -18,9 +18,10 @@
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
-#include "llvm/ExecutionEngine/Orc/LazyEmittingLayer.h"
+//#include "llvm/ExecutionEngine/Orc/LazyEmittingLayer.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Target/TargetMachine.h"
 
 #include <map>
@@ -32,6 +33,24 @@
 namespace llvm {
 class Module;
 class RTDyldMemoryManager;
+namespace orc {
+  using VModuleKey = uint64_t;
+  using NotifyCompiledCallback =
+      std::function<void(llvm::orc::VModuleKey, std::unique_ptr<Module>)>;
+
+  using Resolver1 =
+      std::function<llvm::orc::SymbolNameSet(const llvm::orc::SymbolNameSet &)>;
+  using Resolver2 =
+      std::function<llvm::orc::SymbolNameSet(
+          std::shared_ptr<llvm::orc::AsynchronousSymbolQuery>,
+          llvm::orc::SymbolNameSet)>;
+  using SymbolResolver = std::pair<Resolver1, Resolver2>;
+
+  inline auto createSymbolResolver(Resolver1 &&R1, Resolver2 &&R2) {
+    return std::make_shared<SymbolResolver>(
+        std::make_pair(std::move(R1), std::move(R2)));
+  }
+}
 }
 
 namespace cling {
@@ -55,90 +74,92 @@ private:
     void operator()(llvm::orc::VModuleKey K,
                     const llvm::object::ObjectFile &Object,
                     const llvm::LoadedObjectInfo &/*Info*/) const {
-      m_JIT.m_UnfinalizedSections[K]
-        = std::move(m_JIT.m_SectionsAllocatedSinceLastLoad);
-      m_JIT.m_SectionsAllocatedSinceLastLoad = SectionAddrSet();
-
-      // FIXME: NotifyObjectEmitted requires a RuntimeDyld::LoadedObjectInfo
-      // object. In order to get it one should call
-      // RTDyld.loadObject(*ObjToLoad->getBinary()) according to r306058.
-      // Moreover this should be done in the finalizer. Currently we are
-      // disabling this since we have globally disabled this functionality in
-      // IncrementalJIT.cpp (m_GDBListener = 0).
-      //
-      // if (auto GDBListener = m_JIT.m_GDBListener)
-      //   GDBListener->NotifyObjectEmitted(*Object->getBinary(), Info);
-
-      for (const auto &Symbol: Object.symbols()) {
-        auto Flags = Symbol.getFlags();
-        if (!Flags) {
-          llvm::consumeError(Flags.takeError());
-          llvm_unreachable("Handle this error");
-        }
-        if (*Flags & llvm::object::BasicSymbolRef::SF_Undefined)
-          continue;
-        // FIXME: this should be uncommented once we serve incremental
-        // modules from a TU module.
-        //if (!(Flags & llvm::object::BasicSymbolRef::SF_Exported))
-        //  continue;
-        auto NameOrError = Symbol.getName();
-        if (!NameOrError)
-          continue;
-        auto Name = NameOrError.get();
-        if (m_JIT.m_SymbolMap.find(Name) == m_JIT.m_SymbolMap.end()) {
-          llvm::JITSymbol Sym
-            = m_JIT.m_CompileLayer.findSymbolIn(K, Name.str(), true);
-          if (auto Addr = Sym.getAddress())
-            m_JIT.m_SymbolMap[Name] = *Addr;
-        }
-      }
+      llvm_unreachable("TODO");
     }
+//      m_JIT.m_UnfinalizedSections[K]
+//        = std::move(m_JIT.m_SectionsAllocatedSinceLastLoad);
+//      m_JIT.m_SectionsAllocatedSinceLastLoad = SectionAddrSet();
+//
+//      // FIXME: NotifyObjectEmitted requires a RuntimeDyld::LoadedObjectInfo
+//      // object. In order to get it one should call
+//      // RTDyld.loadObject(*ObjToLoad->getBinary()) according to r306058.
+//      // Moreover this should be done in the finalizer. Currently we are
+//      // disabling this since we have globally disabled this functionality in
+//      // IncrementalJIT.cpp (m_GDBListener = 0).
+//      //
+//      // if (auto GDBListener = m_JIT.m_GDBListener)
+//      //   GDBListener->NotifyObjectEmitted(*Object->getBinary(), Info);
+//
+//      for (const auto &Symbol: Object.symbols()) {
+//        auto Flags = Symbol.getFlags();
+//        if (!Flags) {
+//          llvm::consumeError(Flags.takeError());
+//          llvm_unreachable("Handle this error");
+//        }
+//        if (*Flags & llvm::object::BasicSymbolRef::SF_Undefined)
+//          continue;
+//        // FIXME: this should be uncommented once we serve incremental
+//        // modules from a TU module.
+//        //if (!(Flags & llvm::object::BasicSymbolRef::SF_Exported))
+//        //  continue;
+//        auto NameOrError = Symbol.getName();
+//        if (!NameOrError)
+//          continue;
+//        auto Name = NameOrError.get();
+//        if (m_JIT.m_SymbolMap.find(Name) == m_JIT.m_SymbolMap.end()) {
+//          llvm::JITSymbol Sym
+//            = m_JIT.m_CompileLayer.findSymbolIn(K, Name.str(), true);
+//          if (auto Addr = Sym.getAddress())
+//            m_JIT.m_SymbolMap[Name] = *Addr;
+//        }
+//      }
+//    }
 
   private:
     IncrementalJIT &m_JIT;
   };
-  class RemovableObjectLinkingLayer:
-    public llvm::orc::LegacyRTDyldObjectLinkingLayer {
-  public:
-    using Base_t = llvm::orc::LegacyRTDyldObjectLinkingLayer;
-    using NotifyFinalizedFtor = Base_t::NotifyFinalizedFtor;
-    RemovableObjectLinkingLayer(SymbolMapT &SymMap,
-                                llvm::orc::ExecutionSession& ES,
-                                Base_t::ResourcesGetter RG,
-                                NotifyObjectLoadedT NotifyLoaded,
-                                NotifyFinalizedFtor NotifyFinalized)
-      : Base_t(ES, RG, NotifyLoaded, NotifyFinalized), m_SymbolMap(SymMap)
-    {}
-
-    llvm::Error
-    removeObject(llvm::orc::VModuleKey K) {
-      struct AccessSymbolTable: public LinkedObject {
-        const llvm::StringMap<llvm::JITEvaluatedSymbol>&
-        getSymbolTable() const {
-          return SymbolTable;
-        }
-      };
-      const AccessSymbolTable* HSymTable
-        = static_cast<const AccessSymbolTable*>(LinkedObjects[K].get());
-
-      for (auto&& NameSym: HSymTable->getSymbolTable()) {
-        auto iterSymMap = m_SymbolMap.find(NameSym.first());
-        if (iterSymMap == m_SymbolMap.end())
-          continue;
-        // Is this this symbol (address)?
-        if (iterSymMap->second == NameSym.second.getAddress())
-          m_SymbolMap.erase(iterSymMap);
-      }
-      return llvm::orc::LegacyRTDyldObjectLinkingLayer::removeObject(K);
-    }
-  private:
-    SymbolMapT& m_SymbolMap;
-  };
-
-  typedef RemovableObjectLinkingLayer ObjectLayerT;
-  typedef llvm::orc::LegacyIRCompileLayer<ObjectLayerT,
-                                       llvm::orc::SimpleCompiler> CompileLayerT;
-  typedef llvm::orc::LazyEmittingLayer<CompileLayerT> LazyEmitLayerT;
+//  class RemovableObjectLinkingLayer:
+//    public llvm::orc::LegacyRTDyldObjectLinkingLayer {
+//  public:
+//    using Base_t = llvm::orc::LegacyRTDyldObjectLinkingLayer;
+//    using NotifyFinalizedFtor = Base_t::NotifyFinalizedFtor;
+//    RemovableObjectLinkingLayer(SymbolMapT &SymMap,
+//                                llvm::orc::ExecutionSession& ES,
+//                                Base_t::ResourcesGetter RG,
+//                                NotifyObjectLoadedT NotifyLoaded,
+//                                NotifyFinalizedFtor NotifyFinalized)
+//      : Base_t(ES, RG, NotifyLoaded, NotifyFinalized), m_SymbolMap(SymMap)
+//    {}
+//
+//    llvm::Error
+//    removeObject(llvm::orc::VModuleKey K) {
+//      struct AccessSymbolTable: public LinkedObject {
+//        const llvm::StringMap<llvm::JITEvaluatedSymbol>&
+//        getSymbolTable() const {
+//          return SymbolTable;
+//        }
+//      };
+//      const AccessSymbolTable* HSymTable
+//        = static_cast<const AccessSymbolTable*>(LinkedObjects[K].get());
+//
+//      for (auto&& NameSym: HSymTable->getSymbolTable()) {
+//        auto iterSymMap = m_SymbolMap.find(NameSym.first());
+//        if (iterSymMap == m_SymbolMap.end())
+//          continue;
+//        // Is this this symbol (address)?
+//        if (iterSymMap->second == NameSym.second.getAddress())
+//          m_SymbolMap.erase(iterSymMap);
+//      }
+//      return llvm::orc::LegacyRTDyldObjectLinkingLayer::removeObject(K);
+//    }
+//  private:
+//    SymbolMapT& m_SymbolMap;
+//  };
+//
+//  typedef RemovableObjectLinkingLayer ObjectLayerT;
+//  typedef llvm::orc::LegacyIRCompileLayer<ObjectLayerT,
+//                                       llvm::orc::SimpleCompiler> CompileLayerT;
+//  typedef llvm::orc::LazyEmittingLayer<CompileLayerT> LazyEmitLayerT;
 
   std::unique_ptr<llvm::TargetMachine> m_TM;
   llvm::DataLayout m_TMDataLayout;
@@ -149,13 +170,14 @@ private:
 
   ///\brief The RTDyldMemoryManager used to communicate with the
   /// IncrementalExecutor to handle missing or special symbols.
-  std::shared_ptr<llvm::RTDyldMemoryManager> m_ExeMM;
+  //std::shared_ptr<llvm::RTDyldMemoryManager> m_ExeMM;
+  std::shared_ptr<llvm::SectionMemoryManager> m_ExeMM;
 
   NotifyObjectLoadedT m_NotifyObjectLoaded;
 
-  ObjectLayerT m_ObjectLayer;
-  CompileLayerT m_CompileLayer;
-  LazyEmitLayerT m_LazyEmitLayer;
+  //ObjectLayerT m_ObjectLayer;
+  //CompileLayerT m_CompileLayer;
+  //LazyEmitLayerT m_LazyEmitLayer;
 
   // We need to store ObjLayerT::ObjHandles for each of the object sets
   // that have been emitted but not yet finalized so that we can forward the
@@ -178,7 +200,8 @@ private:
 public:
   IncrementalJIT(IncrementalExecutor& exe,
                  std::unique_ptr<llvm::TargetMachine> TM,
-                 CompileLayerT::NotifyCompiledCallback NCF);
+                 std::unique_ptr<llvm::orc::ExecutorProcessControl> EPC,
+                 llvm::orc::NotifyCompiledCallback NCF);
 
   ///\brief Get the address of a symbol from the JIT or the memory manager,
   /// mangling the name as needed. Use this to resolve symbols as coming
@@ -188,16 +211,16 @@ public:
   /// \param AlsoInProcess - Sometimes you only care about JITed symbols. If so,
   ///   pass `false` here to not resolve the symbol through dlsym().
   uint64_t getSymbolAddress(const std::string& Name, bool AlsoInProcess) {
-    // FIXME: We should decide if we want to handle the error here or make the
-    // return type of the function llvm::Expected<uint64_t> relying on the
-    // users to decide how to handle the error.
-    if (auto S = getSymbolAddressWithoutMangling(Mangle(Name), AlsoInProcess)) {
-      if (auto AddrOrErr = S.getAddress())
-        return *AddrOrErr;
-      else
-        llvm_unreachable("Handle the error case");
-    }
-
+    //// FIXME: We should decide if we want to handle the error here or make the
+    //// return type of the function llvm::Expected<uint64_t> relying on the
+    //// users to decide how to handle the error.
+    //if (auto S = getSymbolAddressWithoutMangling(Mangle(Name), AlsoInProcess)) {
+    //  if (auto AddrOrErr = S.getAddress())
+    //    return *AddrOrErr;
+    //  else
+    //    llvm_unreachable("Handle the error case");
+    //}
+    llvm_unreachable("Handle the error case");
     return 0;
   }
 
