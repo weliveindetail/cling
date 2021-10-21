@@ -57,12 +57,13 @@ namespace cling {
 class Azog;
 class IncrementalExecutor;
 
+namespace ORCv1 {
 class IncrementalJIT {
 public:
   using SymbolMapT = llvm::StringMap<llvm::JITTargetAddress>;
 
 private:
-  friend class Azog;
+  friend class cling::Azog;
 
   llvm::JITEventListener* m_GDBListener; // owned by llvm::ManagedStaticBase
 
@@ -244,5 +245,6 @@ public:
   std::pair<void*, bool>
   lookupSymbol(llvm::StringRef Name, void* Addr = nullptr, bool Jit = false);
 };
+} // end namespace ORCv1
 } // end cling
 #endif // CLING_INCREMENTAL_EXECUTOR_H

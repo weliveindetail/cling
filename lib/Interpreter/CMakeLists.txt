@@ -81,6 +81,7 @@ add_cling_library(clingInterpreter OBJECT
   IncrementalCUDADeviceCompiler.cpp
   IncrementalExecutor.cpp
   IncrementalJIT.cpp
+  IncrementalJIT_ORCv2.cpp
   IncrementalParser.cpp
   Interpreter.cpp
   InterpreterCallbacks.cpp

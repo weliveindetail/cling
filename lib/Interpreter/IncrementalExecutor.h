@@ -10,7 +10,7 @@
 #ifndef CLING_INCREMENTAL_EXECUTOR_H
 #define CLING_INCREMENTAL_EXECUTOR_H
 
-#include "IncrementalJIT.h"
+#include "IncrementalJIT_ORCv2.h"
 
 #include "BackendPasses.h"
 #include "EnterUserCodeRAII.h"

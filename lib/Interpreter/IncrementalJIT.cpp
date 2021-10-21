@@ -7,7 +7,7 @@
 // LICENSE.TXT for details.
 //------------------------------------------------------------------------------
 
-#include "IncrementalJIT.h"
+#include "IncrementalJIT_ORCv2.h"
 
 #include "IncrementalExecutor.h"
 #include "cling/Utils/Platform.h"
@@ -44,14 +44,14 @@ public:
 
   class NotifyFinalizedT {
   public:
-    NotifyFinalizedT(cling::IncrementalJIT &jit) : m_JIT(jit) {}
+    NotifyFinalizedT(cling::ORCv1::IncrementalJIT &jit) : m_JIT(jit) {}
     void operator()(llvm::orc::VModuleKey K, const object::ObjectFile &/*Obj*/,
                     const RuntimeDyld::LoadedObjectInfo &/*Info*/) {
       m_JIT.RemoveUnfinalizedSection(K);
     }
 
   private:
-    cling::IncrementalJIT &m_JIT;
+    cling::ORCv1::IncrementalJIT &m_JIT;
   };
 
 } // unnamed namespace
@@ -62,7 +62,7 @@ namespace cling {
 /// common IncrementalJIT. I.e. the master of the Orcs.
 /// Each ObjectLayer instance has one Azog object.
 class Azog: public RTDyldMemoryManager {
-  cling::IncrementalJIT& m_jit;
+  cling::ORCv1::IncrementalJIT& m_jit;
 
   struct AllocInfo {
     uint8_t *m_Start   = nullptr;
@@ -152,7 +152,7 @@ class Azog: public RTDyldMemoryManager {
 #endif
 
 public:
-  Azog(cling::IncrementalJIT& Jit): m_jit(Jit) {}
+  Azog(cling::ORCv1::IncrementalJIT& Jit): m_jit(Jit) {}
 
   RTDyldMemoryManager* getExeMM() const { return m_jit.m_ExeMM.get(); }
 
@@ -273,6 +273,8 @@ public:
   };
 
 }; // class Azog
+
+namespace ORCv1 {
 
 IncrementalJIT::IncrementalJIT(IncrementalExecutor& exe,
                                std::unique_ptr<TargetMachine> TM,
@@ -496,5 +498,7 @@ IncrementalJIT::removeModule(const llvm::Module* module) {
   //return m_LazyEmitLayer.removeModule(K);
   return llvm::Error::success();
 }
+
+} // end namespace ORCv1
 
 }// end namespace cling

@@ -9,7 +9,7 @@
 
 #include "IncrementalExecutor.h"
 #include "BackendPasses.h"
-#include "IncrementalJIT.h"
+#include "IncrementalJIT_ORCv2.h"
 #include "Threading.h"
 
 #include "cling/Interpreter/DynamicLibraryManager.h"

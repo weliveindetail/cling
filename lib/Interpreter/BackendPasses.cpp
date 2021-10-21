@@ -9,7 +9,7 @@
 
 #include "BackendPasses.h"
 
-#include "IncrementalJIT.h"
+#include "IncrementalJIT_ORCv2.h"
 
 #include "llvm/Analysis/InlineCost.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
