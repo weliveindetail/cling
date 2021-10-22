@@ -10,8 +10,6 @@
 #ifndef CLING_INCREMENTAL_JIT_ORCV2_H
 #define CLING_INCREMENTAL_JIT_ORCV2_H
 
-#include "IncrementalJIT.h"
-
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Module.h"
