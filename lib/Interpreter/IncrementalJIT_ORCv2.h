@@ -15,6 +15,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Module.h"
 #include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -32,7 +33,8 @@ public:
   IncrementalJIT(IncrementalExecutor& Executor,
                  std::unique_ptr<llvm::TargetMachine> TM,
                  std::unique_ptr<llvm::orc::ExecutorProcessControl> EPC,
-                 llvm::orc::NotifyCompiledCallback NCF) {}
+                 llvm::orc::NotifyCompiledCallback NCF,
+                 llvm::Error &Err);
 
   llvm::orc::VModuleKey addModule(std::unique_ptr<llvm::Module> M) {
     return 0;
@@ -50,6 +52,12 @@ public:
   lookupSymbol(llvm::StringRef Name, void* Addr = nullptr, bool Jit = false) {
     return std::make_pair(nullptr, false);
   }
+
+private:
+  std::unique_ptr<llvm::orc::LLJIT> Jit;
+
+  // FIXME: Move TargetMachine ownership to BackendPasses
+  std::unique_ptr<llvm::TargetMachine> TM;
 };
 
 } // namespace cling

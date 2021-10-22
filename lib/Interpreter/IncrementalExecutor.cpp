@@ -127,8 +127,13 @@ IncrementalExecutor::IncrementalExecutor(clang::DiagnosticsEngine& /*diags*/,
     m_PendingModules[K]->setModule(std::move(M));
     m_PendingModules.erase(K);
   };
+  llvm::Error Err = llvm::Error::success();
   auto EPC = llvm::cantFail(llvm::orc::SelfExecutorProcessControl::Create());
-  m_JIT.reset(new IncrementalJIT(*this, std::move(TM), std::move(EPC), RetainOwnership));
+  m_JIT.reset(new IncrementalJIT(*this, std::move(TM), std::move(EPC), RetainOwnership, Err));
+  if (Err) {
+    llvm::logAllUnhandledErrors(std::move(Err), llvm::errs(), "Fatal: ");
+    llvm_unreachable("Propagate this error and exit gracefully");
+  }
 
   m_BackendPasses.reset(new BackendPasses(CI.getCodeGenOpts(),
                                           CI.getTargetOpts(),
