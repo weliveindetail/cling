@@ -1521,9 +1521,6 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
                                           /*UserFilesAreVolatile*/ true);
     CI->setSourceManager(SM); // CI now owns SM
 
-    if (FrontendOpts.ShowTimers)
-      CI->createFrontendTimer();
-
     if (FrontendOpts.ModulesEmbedAllFiles)
        CI->getSourceManager().setAllFilesAreTransient(true);
 
@@ -1664,6 +1661,9 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
     CGOpts.VectorizeLoop = 1;
     CGOpts.VectorizeSLP = 1;
     CGOpts.DisableO0ImplyOptNone = 1; // Enable dynamic opt level switching.
+
+    if (CGOpts.TimePasses)
+      CI->createFrontendTimer();
 
     CGOpts.setInlining((CGOpts.OptimizationLevel == 0)
                        ? CodeGenOptions::OnlyAlwaysInlining
