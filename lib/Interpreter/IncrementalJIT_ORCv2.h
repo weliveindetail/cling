@@ -44,7 +44,7 @@ public:
   // FIXME: Accept a LLVMContext as well, e.g. the one that was used for the
   // particular module in Interpreter, CIFactory or BackendPasses (would be
   // more efficient)
-  llvm::orc::VModuleKey addModule(std::unique_ptr<llvm::Module> M);
+  void addModule(std::unique_ptr<llvm::Module> M);
 
   llvm::Expected<std::unique_ptr<llvm::Module>>
   removeModule(const llvm::Module* M);

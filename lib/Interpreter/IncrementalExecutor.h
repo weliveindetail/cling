@@ -252,12 +252,11 @@ namespace cling {
     ///
     /// @param[in] module - The module to pass to the execution engine.
     /// @param[in] optLevel - The optimization level to be used.
-    llvm::orc::VModuleKey
-    emitModule(std::unique_ptr<llvm::Module> module, int optLevel) const {
+    void emitModule(std::unique_ptr<llvm::Module> module, int optLevel) const {
       if (m_BackendPasses)
         m_BackendPasses->runOnModule(*module, optLevel);
 
-      return m_JIT->addModule(std::move(module));
+      m_JIT->addModule(std::move(module));
     }
 
     ///\brief Report and empty m_unresolvedSymbols.

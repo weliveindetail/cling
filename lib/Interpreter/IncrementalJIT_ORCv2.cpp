@@ -77,7 +77,7 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
   }
 }
 
-VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
+void IncrementalJIT::addModule(std::unique_ptr<Module> M) {
   const Module *RawModulePtr = M.get();
   ResourceTrackerSP RT = Jit->getMainJITDylib().createResourceTracker();
   ResourceTrackers[RawModulePtr] = RT;
@@ -86,13 +86,10 @@ VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
   if (Error Err = Jit->addIRModule(RT, std::move(TSM))) {
     logAllUnhandledErrors(std::move(Err), errs(),
                           "IncrementalJIT::addModule failed: ");
-    return 0;
+    return;
   }
 
   NotifyReadyForUnloading(RawModulePtr);
-
-  // Return value unused. For the moment, the raw module pointer is used as key.
-  return 0;
 }
 
 Expected<std::unique_ptr<Module>> IncrementalJIT::removeModule(const Module* M) {
