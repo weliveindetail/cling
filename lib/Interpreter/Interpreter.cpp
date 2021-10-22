@@ -1806,9 +1806,9 @@ namespace cling {
 
     std::error_code EC;
     llvm::raw_fd_ostream out(outFile.data(), EC,
-                             llvm::sys::fs::OpenFlags::F_None);
+                             llvm::sys::fs::OF_None);
     llvm::raw_fd_ostream log((outFile + ".skipped").str().c_str(),
-                             EC, llvm::sys::fs::OpenFlags::F_None);
+                             EC, llvm::sys::fs::OF_None);
     log << "Generated for :" << inFile << "\n";
     forwardDeclare(*T, fwdGenPP, fwdGen.getCI()->getSema().getASTContext(),
                    out, enableMacros,
