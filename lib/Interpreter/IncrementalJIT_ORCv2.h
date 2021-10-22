@@ -12,6 +12,7 @@
 
 #include "IncrementalJIT.h"
 
+#include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Module.h"
 #include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
@@ -29,12 +30,15 @@ namespace cling {
 
 class IncrementalExecutor;
 
+using ReadyForUnloadingCallback =
+    llvm::unique_function<void(const llvm::Module* M)>;
+
 class IncrementalJIT {
 public:
   IncrementalJIT(IncrementalExecutor& Executor,
                  std::unique_ptr<llvm::TargetMachine> TM,
                  std::unique_ptr<llvm::orc::ExecutorProcessControl> EPC,
-                 llvm::orc::NotifyCompiledCallback NCF,
+                 ReadyForUnloadingCallback NotifyReadyForUnloading,
                  llvm::Error &Err);
 
   // FIXME: Accept a LLVMContext as well, e.g. the one that was used for the
@@ -65,6 +69,9 @@ public:
 private:
   std::unique_ptr<llvm::orc::LLJIT> Jit;
   llvm::orc::SymbolMap InjectedSymbols;
+
+  // FIXME: Remove this once we simplified code unloading with ORCv2
+  ReadyForUnloadingCallback NotifyReadyForUnloading;
 
   // FIXME: Move TargetMachine ownership to BackendPasses
   std::unique_ptr<llvm::TargetMachine> TM;

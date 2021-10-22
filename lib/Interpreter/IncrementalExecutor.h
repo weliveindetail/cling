@@ -143,7 +143,7 @@ namespace cling {
 
     ///\brief The list of llvm::Module-s to return the transaction
     /// after the JIT has emitted them.
-    std::map<llvm::orc::VModuleKey, Transaction*> m_PendingModules;
+    std::map<const llvm::Module*, Transaction*> m_PendingModules;
 
     /// Dynamic library manager object.
     ///

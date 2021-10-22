@@ -22,9 +22,9 @@ namespace cling {
 IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
                                std::unique_ptr<TargetMachine> TM,
                                std::unique_ptr<llvm::orc::ExecutorProcessControl> EPC,
-                               NotifyCompiledCallback NCF,
+                               ReadyForUnloadingCallback NotifyReadyForUnloading,
                                Error &Err)
-    : TM(std::move(TM)),
+    : NotifyReadyForUnloading(std::move(NotifyReadyForUnloading)), TM(std::move(TM)),
       SingleThreadedContext(std::make_unique<LLVMContext>()) {
   ErrorAsOutParameter _(&Err);
 
@@ -69,10 +69,10 @@ VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
     return 0;
   }
 
-  // cling module names appear to follow the cling-module-X scheme, where X is
-  // is a counter. So they should be unique. We could always hash the module
-  // contents instead to obtain a unique ID.
-  return GlobalValue::getGUID(RawModulePtr->getName());
+  NotifyReadyForUnloading(RawModulePtr);
+
+  // Return value unused. For the moment, the raw module pointer is used as key.
+  return 0;
 }
 
 std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,

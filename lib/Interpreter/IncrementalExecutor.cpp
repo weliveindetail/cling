@@ -121,15 +121,14 @@ IncrementalExecutor::IncrementalExecutor(clang::DiagnosticsEngine& /*diags*/,
 
   std::unique_ptr<TargetMachine> TM(CreateHostTargetMachine(CI));
   auto &TMRef = *TM;
-  auto RetainOwnership =
-    [this](llvm::orc::VModuleKey K, std::unique_ptr<Module> M) -> void {
-    assert (m_PendingModules.count(K) && "Unable to find the module");
-    m_PendingModules[K]->setModule(std::move(M));
-    m_PendingModules.erase(K);
+  auto SetReadyForUnloading = [this](const llvm::Module* M) {
+    assert (m_PendingModules.count(M) && "Unable to find the module");
+    m_PendingModules[M]->setUnownedModule(M);
+    m_PendingModules.erase(M);
   };
   llvm::Error Err = llvm::Error::success();
   auto EPC = llvm::cantFail(llvm::orc::SelfExecutorProcessControl::Create());
-  m_JIT.reset(new IncrementalJIT(*this, std::move(TM), std::move(EPC), RetainOwnership, Err));
+  m_JIT.reset(new IncrementalJIT(*this, std::move(TM), std::move(EPC), SetReadyForUnloading, Err));
   if (Err) {
     llvm::logAllUnhandledErrors(std::move(Err), llvm::errs(), "Fatal: ");
     llvm_unreachable("Propagate this error and exit gracefully");
@@ -255,10 +254,8 @@ IncrementalExecutor::runStaticInitializersOnce(Transaction& T) {
   if (isPracticallyEmptyModule(m))
     return kExeSuccess;
 
-  llvm::orc::VModuleKey K =
-    emitModule(T.takeModule(), T.getCompilationOpts().OptLevel);
-  m_PendingModules[K] = &T;
-
+  m_PendingModules[T.getModule()] = &T;
+  emitModule(T.takeModule(), T.getCompilationOpts().OptLevel);
 
   // We don't care whether something was unresolved before.
   m_unresolvedSymbols.clear();
