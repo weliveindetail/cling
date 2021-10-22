@@ -177,11 +177,9 @@ namespace cling {
     void installLazyFunctionCreator(LazyFunctionCreatorFunc_t fp);
 
     ///\brief Unload a set of JIT symbols.
-    bool unloadModule(const llvm::Module* M) const {
-      // FIXME: Propagate the error in a more verbose way.
-      if (auto Err = m_JIT->removeModule(M))
-        return false;
-      return true;
+    llvm::Expected<std::unique_ptr<llvm::Module>>
+    unloadModule(const llvm::Module* M) const {
+      return m_JIT->removeModule(M);
     }
 
     ///\brief Run the static initializers of all modules collected to far.

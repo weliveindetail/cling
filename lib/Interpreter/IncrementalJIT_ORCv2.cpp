@@ -54,7 +54,16 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
     return;
   }
 
-  // FIXME: Handle NotifyCompiledCallback
+  Jit->getIRCompileLayer().setNotifyCompiled(
+      [this](auto &MR, ThreadSafeModule TSM) {
+        // FIXME: Don't store them mapped by raw pointers.
+        const Module *Unsafe = TSM.getModuleUnlocked();
+        assert(!CompiledModules.count(Unsafe) && "Modules are compiled once");
+        assert((!Unsafe->getName().startswith("cling-module-") ||
+                ResourceTrackers.count(Unsafe)) &&
+               "All cling-modules are tracked");
+        CompiledModules[Unsafe] = std::move(TSM);
+      });
 
   // FIXME: Make host process symbol lookup optional on a per-query basis
   char LinkerPrefix = this->TM->createDataLayout().getGlobalPrefix();
@@ -70,9 +79,11 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
 
 VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
   const Module *RawModulePtr = M.get();
+  ResourceTrackerSP RT = Jit->getMainJITDylib().createResourceTracker();
+  ResourceTrackers[RawModulePtr] = RT;
 
   ThreadSafeModule TSM(std::move(M), SingleThreadedContext);
-  if (Error Err = Jit->addIRModule(std::move(TSM))) {
+  if (Error Err = Jit->addIRModule(RT, std::move(TSM))) {
     logAllUnhandledErrors(std::move(Err), errs(),
                           "IncrementalJIT::addModule failed: ");
     return 0;
@@ -82,6 +93,16 @@ VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
 
   // Return value unused. For the moment, the raw module pointer is used as key.
   return 0;
+}
+
+Expected<std::unique_ptr<Module>> IncrementalJIT::removeModule(const Module* M) {
+  ResourceTrackerSP RT = std::move(ResourceTrackers[M]);
+  ResourceTrackers.erase(M);
+  if (Error Err = RT->remove())
+    return std::move(Err);
+  std::unique_ptr<Module> OwnedModule = CompiledModules[M].takeModule();
+  CompiledModules.erase(M);
+  return std::move(OwnedModule);
 }
 
 std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,

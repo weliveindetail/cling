@@ -101,7 +101,18 @@ namespace cling {
     bool Successful = true;
     const llvm::Module *UnownedModule = T->getUnownedModule();
     if (getExecutor() && UnownedModule) {
-      Successful = getExecutor()->unloadModule(T->getModule()) && Successful;
+      // TODO: Do we have to keep the module alive beyond this scope?
+      llvm::Expected<std::unique_ptr<llvm::Module>> OwnedModule =
+          getExecutor()->unloadModule(UnownedModule);
+      if (!OwnedModule) {
+        // FIXME: Propagate the error.
+        // FIXME: If the module was deleted already, the `unloadModule()`
+        // function below crashes.
+        llvm::logAllUnhandledErrors(
+            OwnedModule.takeError(), llvm::errs(),
+            "TransactionUnloader::RevertTransaction failed: ");
+        Successful = false;
+      }
 
       // Cleanup the module from unused global values.
       // if (T->getModule()) {

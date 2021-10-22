@@ -46,9 +46,8 @@ public:
   // more efficient)
   llvm::orc::VModuleKey addModule(std::unique_ptr<llvm::Module> M);
 
-  llvm::Error removeModule(const llvm::Module* M) {
-    return llvm::Error::success();
-  }
+  llvm::Expected<std::unique_ptr<llvm::Module>>
+  removeModule(const llvm::Module* M);
 
   /// Get the address of a symbol from the JIT or (optionally) the host process.
   /// Use this to resolve symbols based on their IR names (as they are coming
@@ -69,6 +68,13 @@ public:
 private:
   std::unique_ptr<llvm::orc::LLJIT> Jit;
   llvm::orc::SymbolMap InjectedSymbols;
+
+  /// FIXME: If the relation between modules and transactions is a bijection, the
+  /// mapping via module pointers here is unnecessary. The transaction should
+  /// store the resource tracker directly and pass it to `remove()` for
+  /// unloading.
+  std::map<const llvm::Module *, llvm::orc::ResourceTrackerSP> ResourceTrackers;
+  std::map<const llvm::Module *, llvm::orc::ThreadSafeModule> CompiledModules;
 
   // FIXME: Remove this once we simplified code unloading with ORCv2
   ReadyForUnloadingCallback NotifyReadyForUnloading;
