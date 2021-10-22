@@ -51,13 +51,20 @@ public:
   /// from clang's mangler).
   uint64_t getSymbolAddress(const std::string& Name, bool AlsoInProcess);
 
-  std::pair<void*, bool>
-  lookupSymbol(llvm::StringRef Name, void* Addr = nullptr, bool Jit = false) {
-    return std::make_pair(nullptr, false);
-  }
+  /// Returns the address of the symbol and a boolean value that doesn't appear
+  /// to be use anywhere in the public cling codebase.
+  ///
+  /// FIXME: This is used for both, to inject external symbols and to lookup
+  /// exiting symbols. Should we use the above `getSymbolAddress()` for the
+  /// former and change this into something like `addDefinition()`?
+  ///
+  std::pair<void*, bool> lookupSymbol(llvm::StringRef LinkerMangledName,
+                                      void* KnownAddr = nullptr,
+                                      bool ReplaceExisting = false);
 
 private:
   std::unique_ptr<llvm::orc::LLJIT> Jit;
+  llvm::orc::SymbolMap InjectedSymbols;
 
   // FIXME: Move TargetMachine ownership to BackendPasses
   std::unique_ptr<llvm::TargetMachine> TM;

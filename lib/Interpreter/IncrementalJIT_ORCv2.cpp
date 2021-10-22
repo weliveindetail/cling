@@ -75,6 +75,47 @@ VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
   return GlobalValue::getGUID(RawModulePtr->getName());
 }
 
+std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
+                                                    void* KnownAddr,
+                                                    bool ReplaceExisting) {
+  Expected<JITEvaluatedSymbol> Symbol =
+      Jit->lookupLinkerMangled(LinkerMangledName);
+  if (!Symbol && !KnownAddr) {
+    logAllUnhandledErrors(Symbol.takeError(), errs(),
+                          "IncrementalJIT::lookupSymbol failed: ");
+    return std::make_pair(nullptr, false);
+  }
+
+  if (KnownAddr) {
+    if (!Symbol) {
+      consumeError(Symbol.takeError());
+    } else if (Symbol && !ReplaceExisting) {
+      errs() << "IncrementalJIT::lookupSymbol failed: "
+             << "cannot redefine existing symbol '" << LinkerMangledName
+             << "'\n";
+      return std::make_pair(nullptr, false);
+    }
+
+    bool Inserted;
+    SymbolMap::iterator It;
+    std::tie(It, Inserted) = InjectedSymbols.try_emplace(
+        Jit->getExecutionSession().intern(LinkerMangledName),
+        JITEvaluatedSymbol::fromPointer(KnownAddr));
+    assert(Inserted && "Why wasn't this found in the initial Jit lookup?");
+
+    if (Error Err = Jit->getMainJITDylib().define(absoluteSymbols({*It}))) {
+      logAllUnhandledErrors(std::move(Err), errs(),
+                            "IncrementalJIT::lookupSymbol failed: ");
+      return std::make_pair(nullptr, false);
+    }
+
+    return std::make_pair(KnownAddr, true);
+  }
+
+  errs() << "IncrementalJIT::lookupSymbol failed: not yet implemented\n";
+  return std::make_pair(nullptr, false);
+}
+
 uint64_t IncrementalJIT::getSymbolAddress(const std::string& Name,
                                           bool AlsoInProcess) {
   // TODO: Is the AlsoInProcess parameter still in use? It looks like it didn't
