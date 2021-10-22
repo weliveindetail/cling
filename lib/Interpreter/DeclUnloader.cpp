@@ -175,8 +175,7 @@ static Decl* handleRedelaration(Decl* D, DeclContext* DC) {
       };
       if (!hasDecl(decls, MostRecentNotThis) && hasDecl(decls, ND)) {
         // The decl was registered in the lookup, update it.
-        Pos->second.HandleRedeclaration(MostRecentNotThis,
-                                        /*IsKnownNewer*/ true);
+        Pos->second.addOrReplaceDecl(MostRecentNotThis);
       }
     }
   }
@@ -416,15 +415,16 @@ bool DeclUnloader::VisitRedeclarable(clang::Redeclarable<T>* R, DeclContext* DC)
         // This is the only decl, no need to call Pos->second.remove(ND);
         // as it only sets data to nullptr, just remove the entire entry
         Map->erase(Pos);
-      }
-      else if (StoredDeclsList::DeclsTy* Vec = Pos->second.getAsVector()) {
-        // Otherwise iterate over the list with entries with the same name.
-        for (NamedDecl* NDi : *Vec) {
-          if (NDi == ND)
-            Pos->second.remove(ND);
-        }
-        if (Vec->empty())
-          Map->erase(Pos);
+      } else if (Pos->second.getAsList()) {
+        llvm_unreachable("FIXME: figure out how to iterate StoredDeclsList");
+
+        //// Otherwise iterate over the list with entries with the same name.
+        //for (NamedDecl* NDi : *List) {
+        //  if (NDi == ND)
+        //    Pos->second.remove(ND);
+        //}
+        //if (List->empty())
+        //  Map->erase(Pos);
       }
       else if (Pos->second.isNull()) // least common case
         Map->erase(Pos);
@@ -440,13 +440,14 @@ bool DeclUnloader::VisitRedeclarable(clang::Redeclarable<T>* R, DeclContext* DC)
       // Most decls only have one entry in their list, special case it.
       if (NamedDecl* OldD = Pos->second.getAsDecl())
         assert(OldD != ND && "Lookup entry still exists.");
-      else if (StoredDeclsList::DeclsTy* Vec = Pos->second.getAsVector()) {
-        // Otherwise iterate over the list with entries with the same name.
-        // TODO: Walk the redeclaration chain if the entry was a redeclaration.
+      else if (Pos->second.getAsList()) {
+        llvm_unreachable("FIXME: figure out how to iterate StoredDeclsList");
 
-        for (StoredDeclsList::DeclsTy::const_iterator I = Vec->begin(),
-               E = Vec->end(); I != E; ++I)
-          assert(*I != ND && "Lookup entry still exists.");
+        //// Otherwise iterate over the list with entries with the same name.
+        //// TODO: Walk the redeclaration chain if the entry was a redeclaration.
+        //for (StoredDeclsList::DeclsTy::const_iterator I = Vec->begin(),
+        //       E = Vec->end(); I != E; ++I)
+        //  assert(*I != ND && "Lookup entry still exists.");
       }
       else
         assert(Pos->second.isNull() && "!?");

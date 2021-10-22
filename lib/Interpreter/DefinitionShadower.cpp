@@ -80,13 +80,15 @@ namespace cling {
     }
     clang::StoredDeclsList &SDL = (*m_TU->getLookupPtr())[D->getDeclName()];
     if (SDL.getAsDecl() == D) {
-      SDL.setOnlyValue(nullptr);
+      // FIXME: How to setOnlyValue on a DeclListNode?
+      //SDL.setOnlyValue(nullptr);
     }
-    if (auto Vec = SDL.getAsVector()) {
-      // FIXME: investigate why StoredDeclList has duplicated entries coming from PCM.
-      Vec->erase(std::remove_if(Vec->begin(), Vec->end(),
-                                [D](Decl *Other) { return cast<Decl>(D) == Other; }),
-                 Vec->end());
+    if (auto Vec = SDL.getAsList()) {
+      // FIXME: How to erase on a DeclListNode?
+      //// FIXME: investigate why StoredDeclList has duplicated entries coming from PCM.
+      //Vec->erase(std::remove_if(Vec->begin(), Vec->end(),
+      //                          [D](Decl *Other) { return cast<Decl>(D) == Other; }),
+      //           Vec->end());
     }
 
     if (InterpreterCallbacks *IC = m_Interp.getCallbacks())
