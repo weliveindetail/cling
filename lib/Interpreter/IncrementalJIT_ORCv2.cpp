@@ -75,4 +75,18 @@ VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
   return GlobalValue::getGUID(RawModulePtr->getName());
 }
 
+uint64_t IncrementalJIT::getSymbolAddress(const std::string& Name,
+                                          bool AlsoInProcess) {
+  // TODO: Is the AlsoInProcess parameter still in use? It looks like it didn't
+  // actually work as expected in the ORCv1 implementation.
+  Expected<JITEvaluatedSymbol> Symbol = Jit->lookup(Name);
+  if (!Symbol) {
+    logAllUnhandledErrors(Symbol.takeError(), errs(),
+                          "IncrementalJIT::lookupSymbol failed: ");
+    return 0;
+  }
+
+  return Symbol->getAddress();
+}
+
 } // namespace cling
