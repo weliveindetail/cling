@@ -951,7 +951,7 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
       return false;
     }
 
-    CI->getTarget().adjust(LangOpts);
+    CI->getTarget().adjust(CI->getDiagnostics(), LangOpts);
 
     // This may have already been done via a precompiled header
     if (Targ)
@@ -1604,8 +1604,8 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
 
       std::unique_ptr<raw_pwrite_stream> OS =
           CI->createOutputFile(ModuleOutputFile, /*Binary=*/true,
-                               /*RemoveFileOnSignal=*/false, "",
-                               /*Extension=*/"", /*useTemporary=*/true,
+                               /*RemoveFileOnSignal=*/false,
+                               /*useTemporary=*/true,
                                /*CreateMissingDirectories=*/true);
       assert(OS);
 
