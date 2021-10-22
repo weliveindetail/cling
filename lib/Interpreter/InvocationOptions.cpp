@@ -141,8 +141,7 @@ void CompilerOptions::Parse(int argc, const char* const argv[],
       case options::OPT_nostdincxx: NoCXXInc = true; break;
       case options::OPT_v: Verbose = true; break;
       case options::OPT_fmodules: CxxModules = true; break;
-      case options::OPT_fmodule_name_EQ: LLVM_FALLTHROUGH;
-      case options::OPT_fmodule_name: ModuleName = arg->getValue(); break;
+      case options::OPT_fmodule_name_EQ: ModuleName = arg->getValue(); break;
       case options::OPT_fmodules_cache_path: CachePath = arg->getValue(); break;
       case options::OPT_cuda_path_EQ: CUDAPath = arg->getValue(); break;
       case options::OPT_cuda_gpu_arch_EQ: CUDAGpuArch = arg->getValue(); break;
@@ -225,12 +224,12 @@ InvocationOptions::InvocationOptions(int argc, const char* const* argv) :
 void InvocationOptions::PrintHelp() {
   std::unique_ptr<OptTable> Opts(CreateClingOptTable());
 
-  Opts->PrintHelp(cling::outs(), "cling",
+  Opts->printHelp(cling::outs(), "cling",
                   "cling: LLVM/clang C++ Interpreter: http://cern.ch/cling");
 
   cling::outs() << "\n\n";
 
   const OptTable &OptsC1(getDriverOptTable());
-  OptsC1.PrintHelp(cling::outs(), "clang -cc1",
+  OptsC1.printHelp(cling::outs(), "clang -cc1",
                    "LLVM 'Clang' Compiler: http://clang.llvm.org");
 }

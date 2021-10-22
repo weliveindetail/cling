@@ -734,13 +734,13 @@ namespace cling {
           llvm::object::ObjectFile *BinObjF = ObjFileOrErr.get().getBinary();
           if (BinObjF->isELF()) {
             if (const auto* ELF = dyn_cast<ELF32LEObjectFile>(BinObjF))
-              HandleDynTab(ELF->getELFFile(), FileName, RPath, RunPath, Deps);
+              HandleDynTab(&ELF->getELFFile(), FileName, RPath, RunPath, Deps);
             else if (const auto* ELF = dyn_cast<ELF32BEObjectFile>(BinObjF))
-              HandleDynTab(ELF->getELFFile(), FileName, RPath, RunPath, Deps);
+              HandleDynTab(&ELF->getELFFile(), FileName, RPath, RunPath, Deps);
             else if (const auto* ELF = dyn_cast<ELF64LEObjectFile>(BinObjF))
-              HandleDynTab(ELF->getELFFile(), FileName, RPath, RunPath, Deps);
+              HandleDynTab(&ELF->getELFFile(), FileName, RPath, RunPath, Deps);
             else if (const auto* ELF = dyn_cast<ELF64BEObjectFile>(BinObjF))
-              HandleDynTab(ELF->getELFFile(), FileName, RPath, RunPath, Deps);
+              HandleDynTab(&ELF->getELFFile(), FileName, RPath, RunPath, Deps);
 
           } else if (BinObjF->isMachO()) {
             MachOObjectFile *Obj = (MachOObjectFile*)BinObjF;

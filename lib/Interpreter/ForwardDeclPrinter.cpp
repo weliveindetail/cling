@@ -959,7 +959,8 @@ namespace cling {
 
         if (Args) {
           Stream << " = ";
-          Args->get(i).print(m_Policy, Stream);
+          constexpr bool IncludeType = false;
+          Args->get(i).print(m_Policy, Stream, IncludeType);
         }
         else if (NTTP->hasDefaultArgument()) {
           Expr* DefArg = NTTP->getDefaultArgument()->IgnoreImpCasts();

@@ -764,8 +764,12 @@ static std::string printEnumValue(const Value &V) {
       IsFirst = false;
     }
   }
+
+  constexpr unsigned Radix = 10;
+  llvm::SmallString<8> ValAsAPSIntStr;
+  ValAsAPSInt.toString(ValAsAPSIntStr, Radix, Ty->isSignedIntegerType());
   enumString << " : " << printQualType(C, ED->getIntegerType()) << " "
-    << ValAsAPSInt.toString(/*Radix = */10);
+             << ValAsAPSIntStr.str();
   return enumString.str().str();
 }
 

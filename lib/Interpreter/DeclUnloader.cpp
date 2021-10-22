@@ -506,7 +506,7 @@ bool DeclUnloader::VisitRedeclarable(clang::Redeclarable<T>* R, DeclContext* DC)
     Successful &= VisitNamedDecl(USD);
 
     // Unregister from the using decl that it shadows.
-    USD->getUsingDecl()->removeShadowDecl(USD);
+    USD->getIntroducer()->removeShadowDecl(USD);
 
     return Successful;
   }
