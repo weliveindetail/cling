@@ -1632,7 +1632,7 @@ namespace cling {
       for(size_t i = 0, e = GivenTypes.size(); i < e; ++i) {
         const clang::QualType QT = GivenTypes[i].getCanonicalType();
         {
-          ExprValueKind VK = VK_RValue;
+          ExprValueKind VK = VK_PRValue;
           if (QT->getAs<LValueReferenceType>()) {
             VK = VK_LValue;
           }
@@ -1687,7 +1687,7 @@ namespace cling {
         clang::QualType QT = clang::Sema::GetTypeFromParser(Res.get(), &TSI);
         QT = QT.getCanonicalType();
         {
-          ExprValueKind VK = VK_RValue;
+          ExprValueKind VK = VK_PRValue;
           if (QT->getAs<LValueReferenceType>()) {
             VK = VK_LValue;
           }

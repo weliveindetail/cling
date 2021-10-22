@@ -881,7 +881,7 @@ namespace cling {
                                                EPI);
     DeclRefExpr* DRE = m_Sema->BuildDeclRefExpr(Fn,
                                                 FnTy,
-                                                VK_RValue,
+                                                VK_PRValue,
                                                 m_NoSLoc
                                                 );
 #if 0
