@@ -23,6 +23,7 @@
 #include "clang/Basic/TargetOptions.h"
 #include "clang/Frontend/CompilerInstance.h"
 
+#include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
@@ -126,7 +127,8 @@ IncrementalExecutor::IncrementalExecutor(clang::DiagnosticsEngine& /*diags*/,
     m_PendingModules[K]->setModule(std::move(M));
     m_PendingModules.erase(K);
   };
-  m_JIT.reset(new IncrementalJIT(*this, std::move(TM), RetainOwnership));
+  auto EPC = llvm::cantFail(llvm::orc::SelfExecutorProcessControl::Create());
+  m_JIT.reset(new IncrementalJIT(*this, std::move(TM), std::move(EPC), RetainOwnership));
 
   m_BackendPasses.reset(new BackendPasses(CI.getCodeGenOpts(),
                                           CI.getTargetOpts(),

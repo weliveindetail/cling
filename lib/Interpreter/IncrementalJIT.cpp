@@ -13,6 +13,7 @@
 #include "cling/Utils/Platform.h"
 
 #include "llvm/ExecutionEngine/Orc/Legacy.h"
+#include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Support/DynamicLibrary.h"
 
