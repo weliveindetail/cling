@@ -11,6 +11,8 @@
 
 #include <llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h>
 #include <llvm/ExecutionEngine/Orc/ObjectLinkingLayer.h>
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 using namespace llvm::orc;
@@ -22,7 +24,8 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
                                std::unique_ptr<llvm::orc::ExecutorProcessControl> EPC,
                                NotifyCompiledCallback NCF,
                                Error &Err)
-    : TM(std::move(TM)) {
+    : TM(std::move(TM)),
+      SingleThreadedContext(std::make_unique<LLVMContext>()) {
   ErrorAsOutParameter _(&Err);
 
   // FIXME: We should probably take codegen settings from the CompilerInvocation
@@ -54,6 +57,22 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
   // FIXME: Handle NotifyCompiledCallback
 
   // FIXME: Wire up host process symbol lookup
+}
+
+VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
+  const Module *RawModulePtr = M.get();
+
+  ThreadSafeModule TSM(std::move(M), SingleThreadedContext);
+  if (Error Err = Jit->addIRModule(std::move(TSM))) {
+    logAllUnhandledErrors(std::move(Err), errs(),
+                          "IncrementalJIT::addModule failed: ");
+    return 0;
+  }
+
+  // cling module names appear to follow the cling-module-X scheme, where X is
+  // is a counter. So they should be unique. We could always hash the module
+  // contents instead to obtain a unique ID.
+  return GlobalValue::getGUID(RawModulePtr->getName());
 }
 
 } // namespace cling

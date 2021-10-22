@@ -16,6 +16,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -36,9 +37,10 @@ public:
                  llvm::orc::NotifyCompiledCallback NCF,
                  llvm::Error &Err);
 
-  llvm::orc::VModuleKey addModule(std::unique_ptr<llvm::Module> M) {
-    return 0;
-  }
+  // FIXME: Accept a LLVMContext as well, e.g. the one that was used for the
+  // particular module in Interpreter, CIFactory or BackendPasses (would be
+  // more efficient)
+  llvm::orc::VModuleKey addModule(std::unique_ptr<llvm::Module> M);
 
   llvm::Error removeModule(const llvm::Module* M) {
     return llvm::Error::success();
@@ -58,6 +60,14 @@ private:
 
   // FIXME: Move TargetMachine ownership to BackendPasses
   std::unique_ptr<llvm::TargetMachine> TM;
+
+  // TODO: We only need the context for materialization. Instead of defining it
+  // here we might want to pass one in on a per-module basis.
+  //
+  // FIXME: Using a single context for all modules prevents concurrent
+  // compilation.
+  //
+  llvm::orc::ThreadSafeContext SingleThreadedContext;
 };
 
 } // namespace cling
