@@ -56,7 +56,16 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
 
   // FIXME: Handle NotifyCompiledCallback
 
-  // FIXME: Wire up host process symbol lookup
+  // FIXME: Make host process symbol lookup optional on a per-query basis
+  char LinkerPrefix = this->TM->createDataLayout().getGlobalPrefix();
+  Expected<std::unique_ptr<DynamicLibrarySearchGenerator>> InProcessLookup =
+      DynamicLibrarySearchGenerator::GetForCurrentProcess(LinkerPrefix);
+  if (InProcessLookup) {
+    Jit->getMainJITDylib().addGenerator(std::move(*InProcessLookup));
+  } else {
+    Err = InProcessLookup.takeError();
+    return;
+  }
 }
 
 VModuleKey IncrementalJIT::addModule(std::unique_ptr<Module> M) {
