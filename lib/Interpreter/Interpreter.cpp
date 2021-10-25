@@ -176,6 +176,7 @@ namespace cling {
   static bool handleSimpleOptions(const InvocationOptions& Opts) {
     if (Opts.ShowVersion) {
       cling::log() << Interpreter::getVersion() << '\n';
+      llvm::cl::PrintVersionMessage();
     }
     if (Opts.Help) {
       Opts.PrintHelp();
