@@ -42,7 +42,11 @@ set(LLVM_LINK_COMPONENTS
   target
   transformutils
   binaryformat
-  ${LLVM_TARGETS_TO_BUILD}
+  AllTargetsCodeGens
+  AllTargetsAsmParsers
+  AllTargetsDescs
+  AllTargetsDisassemblers
+  AllTargetsInfos
 )
 
 # clingInterpreter depends on Options.inc to be tablegen-ed
