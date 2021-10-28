@@ -104,7 +104,7 @@ Expected<std::unique_ptr<Module>> IncrementalJIT::removeModule(const Module* M) 
 
 std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
                                                     void* KnownAddr,
-                                                    bool ReplaceExisting) {
+                                                    bool AcceptExisting) {
   Expected<JITEvaluatedSymbol> Symbol =
       Jit->lookupLinkerMangled(LinkerMangledName);
   if (!Symbol && !KnownAddr) {
@@ -113,14 +113,17 @@ std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
     return std::make_pair(nullptr, false);
   }
 
-  if (KnownAddr) {
-    if (!Symbol) {
-      consumeError(Symbol.takeError());
-    } else if (Symbol && !ReplaceExisting) {
-      errs() << "[IncrementalJIT] cannot redefine existing symbol"
-             << " '" << LinkerMangledName << "'\n";
-      return std::make_pair(nullptr, false);
-    }
+  if (KnownAddr && Symbol && !AcceptExisting) {
+    errs() << "[IncrementalJIT] cannot redefine existing symbol"
+            << " '" << LinkerMangledName << "'\n";
+    return std::make_pair(nullptr, false);
+  }
+
+  if (Symbol) {
+    KnownAddr = jitTargetAddressToPointer<void *>(Symbol->getAddress());
+  } else {
+    // Let's inject it
+    consumeError(Symbol.takeError());
 
     bool Inserted;
     SymbolMap::iterator It;
@@ -134,12 +137,9 @@ std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
                             "[IncrementalJIT] define() failed: ");
       return std::make_pair(nullptr, false);
     }
-
-    return std::make_pair(KnownAddr, true);
   }
 
-  errs() << "[IncrementalJIT] lookupSymbol() not fully implemented yet\n";
-  return std::make_pair(nullptr, false);
+  return std::make_pair(KnownAddr, true);
 }
 
 uint64_t IncrementalJIT::getSymbolAddress(const std::string& Name,

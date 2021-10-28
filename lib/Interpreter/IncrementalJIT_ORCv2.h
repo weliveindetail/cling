@@ -61,7 +61,7 @@ public:
   ///
   std::pair<void*, bool> lookupSymbol(llvm::StringRef LinkerMangledName,
                                       void* KnownAddr = nullptr,
-                                      bool ReplaceExisting = false);
+                                      bool AcceptExisting = false);
 
 private:
   std::unique_ptr<llvm::orc::LLJIT> Jit;
