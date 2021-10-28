@@ -102,44 +102,43 @@ Expected<std::unique_ptr<Module>> IncrementalJIT::removeModule(const Module* M) 
   return std::move(OwnedModule);
 }
 
-std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
-                                                    void* KnownAddr,
-                                                    bool AcceptExisting) {
+JITTargetAddress IncrementalJIT::addDefinition(StringRef LinkerMangledName,
+                                               JITTargetAddress KnownAddr,
+                                               bool AcceptExisting) {
   Expected<JITEvaluatedSymbol> Symbol =
       Jit->lookupLinkerMangled(LinkerMangledName);
   if (!Symbol && !KnownAddr) {
     logAllUnhandledErrors(Symbol.takeError(), errs(),
                           "[IncrementalJIT] lookup failed: ");
-    return std::make_pair(nullptr, false);
+    return JITTargetAddress{};
   }
 
   if (KnownAddr && Symbol && !AcceptExisting) {
     errs() << "[IncrementalJIT] cannot redefine existing symbol"
             << " '" << LinkerMangledName << "'\n";
-    return std::make_pair(nullptr, false);
+    return JITTargetAddress{};
   }
 
-  if (Symbol) {
-    KnownAddr = jitTargetAddressToPointer<void *>(Symbol->getAddress());
-  } else {
-    // Let's inject it
-    consumeError(Symbol.takeError());
+  if (Symbol)
+    return Symbol->getAddress();
 
-    bool Inserted;
-    SymbolMap::iterator It;
-    std::tie(It, Inserted) = InjectedSymbols.try_emplace(
-        Jit->getExecutionSession().intern(LinkerMangledName),
-        JITEvaluatedSymbol::fromPointer(KnownAddr));
-    assert(Inserted && "Why wasn't this found in the initial Jit lookup?");
+  // Let's inject it
+  consumeError(Symbol.takeError());
 
-    if (Error Err = Jit->getMainJITDylib().define(absoluteSymbols({*It}))) {
-      logAllUnhandledErrors(std::move(Err), errs(),
-                            "[IncrementalJIT] define() failed: ");
-      return std::make_pair(nullptr, false);
-    }
+  bool Inserted;
+  SymbolMap::iterator It;
+  std::tie(It, Inserted) = InjectedSymbols.try_emplace(
+      Jit->getExecutionSession().intern(LinkerMangledName),
+      JITEvaluatedSymbol(KnownAddr, JITSymbolFlags::Exported));
+  assert(Inserted && "Why wasn't this found in the initial Jit lookup?");
+
+  if (Error Err = Jit->getMainJITDylib().define(absoluteSymbols({*It}))) {
+    logAllUnhandledErrors(std::move(Err), errs(),
+                          "[IncrementalJIT] define() failed: ");
+    return JITTargetAddress{};
   }
 
-  return std::make_pair(KnownAddr, true);
+  return KnownAddr;
 }
 
 uint64_t IncrementalJIT::getSymbolAddress(const std::string& Name,

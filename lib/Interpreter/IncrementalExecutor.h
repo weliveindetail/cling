@@ -205,7 +205,7 @@ namespace cling {
     /// @param[in] JIT - Add to the JIT injected symbol table
     /// @returns true if the symbol is successfully registered, false otherwise.
     ///
-    bool addSymbol(const char* Name, void* Address, bool JIT = false) const;
+    void addSymbol(const char* Name, void* Address, bool JIT = false) const;
 
     ///\brief Tells the execution to run all registered atexit functions once.
     ///
