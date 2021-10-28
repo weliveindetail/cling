@@ -85,7 +85,7 @@ void IncrementalJIT::addModule(std::unique_ptr<Module> M) {
   ThreadSafeModule TSM(std::move(M), SingleThreadedContext);
   if (Error Err = Jit->addIRModule(RT, std::move(TSM))) {
     logAllUnhandledErrors(std::move(Err), errs(),
-                          "IncrementalJIT::addModule failed: ");
+                          "[IncrementalJIT] addModule() failed: ");
     return;
   }
 
@@ -109,7 +109,7 @@ std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
       Jit->lookupLinkerMangled(LinkerMangledName);
   if (!Symbol && !KnownAddr) {
     logAllUnhandledErrors(Symbol.takeError(), errs(),
-                          "IncrementalJIT::lookupSymbol failed: ");
+                          "[IncrementalJIT] lookup failed: ");
     return std::make_pair(nullptr, false);
   }
 
@@ -117,9 +117,8 @@ std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
     if (!Symbol) {
       consumeError(Symbol.takeError());
     } else if (Symbol && !ReplaceExisting) {
-      errs() << "IncrementalJIT::lookupSymbol failed: "
-             << "cannot redefine existing symbol '" << LinkerMangledName
-             << "'\n";
+      errs() << "[IncrementalJIT] cannot redefine existing symbol"
+             << " '" << LinkerMangledName << "'\n";
       return std::make_pair(nullptr, false);
     }
 
@@ -132,14 +131,14 @@ std::pair<void*, bool> IncrementalJIT::lookupSymbol(StringRef LinkerMangledName,
 
     if (Error Err = Jit->getMainJITDylib().define(absoluteSymbols({*It}))) {
       logAllUnhandledErrors(std::move(Err), errs(),
-                            "IncrementalJIT::lookupSymbol failed: ");
+                            "[IncrementalJIT] define() failed: ");
       return std::make_pair(nullptr, false);
     }
 
     return std::make_pair(KnownAddr, true);
   }
 
-  errs() << "IncrementalJIT::lookupSymbol failed: not yet implemented\n";
+  errs() << "[IncrementalJIT] lookupSymbol() not fully implemented yet\n";
   return std::make_pair(nullptr, false);
 }
 
@@ -150,7 +149,7 @@ uint64_t IncrementalJIT::getSymbolAddress(const std::string& Name,
   Expected<JITEvaluatedSymbol> Symbol = Jit->lookup(Name);
   if (!Symbol) {
     logAllUnhandledErrors(Symbol.takeError(), errs(),
-                          "IncrementalJIT::lookupSymbol failed: ");
+                          "[IncrementalJIT] getSymbolAddress() failed: ");
     return 0;
   }
 
