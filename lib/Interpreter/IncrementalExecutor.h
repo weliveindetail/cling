@@ -281,13 +281,13 @@ namespace cling {
 
     template <class T>
     ExecutionResult jitInitOrWrapper(llvm::StringRef funcname, T& fun) const {
-      auto fun_addr = m_JIT->getSymbolAddress(funcname.str(), false /*dlsym*/);
+      void* fun_ptr = m_JIT->getSymbolAddress(funcname, false /*dlsym*/);
 
       // check if there is any unresolved symbol in the list
-      if (diagnoseUnresolvedSymbols(funcname, "function") || !fun_addr)
+      if (diagnoseUnresolvedSymbols(funcname, "function") || !fun_ptr)
         return IncrementalExecutor::kExeUnresolvedSymbols;
 
-      fun = utils::UIntToFunctionPtr<T>(fun_addr);
+      fun = reinterpret_cast<T>(fun_ptr);
       return IncrementalExecutor::kExeSuccess;
     }
   };

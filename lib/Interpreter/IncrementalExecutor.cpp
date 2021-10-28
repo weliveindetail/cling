@@ -407,15 +407,14 @@ void IncrementalExecutor::addSymbol(const char* Name, void* Addr,
 void* IncrementalExecutor::getAddressOfGlobal(llvm::StringRef symbolName,
                                               bool* fromJIT /*=0*/) const {
   // Return a symbol's address, and whether it was jitted.
-  void* address = llvm::jitTargetAddressToPointer<void*>(
-      m_JIT->getSymbolAddress(symbolName.str(), true));
+  void* address = m_JIT->getSymbolAddress(symbolName, true);
 
   // It's not from the JIT if it's in a dylib.
   if (fromJIT)
     *fromJIT = !address;
 
   if (!address)
-    return (void*)m_JIT->getSymbolAddress(symbolName.str(), false /*no dlsym*/);
+    return m_JIT->getSymbolAddress(symbolName, false /*no dlsym*/);
 
   return address;
 }
@@ -427,7 +426,7 @@ IncrementalExecutor::getPointerToGlobalFromJIT(llvm::StringRef name) const {
   // We don't care whether something was unresolved before.
   m_unresolvedSymbols.clear();
 
-  void* addr = (void*)m_JIT->getSymbolAddress(name.str(), false /*no dlsym*/);
+  void* addr = m_JIT->getSymbolAddress(name, false /*no dlsym*/);
 
   if (diagnoseUnresolvedSymbols(name, "symbol"))
     return 0;

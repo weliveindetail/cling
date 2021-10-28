@@ -50,7 +50,7 @@ public:
   /// Get the address of a symbol from the JIT or (optionally) the host process.
   /// Use this to resolve symbols based on their IR names (as they are coming
   /// from clang's mangler).
-  uint64_t getSymbolAddress(const std::string& Name, bool AlsoInProcess);
+  void* getSymbolAddress(llvm::StringRef Name, bool AlsoInProcess);
 
   /// Inject a symbol with a known address. Collisions will cause an error
   /// unless AcceptExisting = true.

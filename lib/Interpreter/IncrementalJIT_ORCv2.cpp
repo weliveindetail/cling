@@ -141,8 +141,7 @@ JITTargetAddress IncrementalJIT::addDefinition(StringRef LinkerMangledName,
   return KnownAddr;
 }
 
-uint64_t IncrementalJIT::getSymbolAddress(const std::string& Name,
-                                          bool AlsoInProcess) {
+void* IncrementalJIT::getSymbolAddress(StringRef Name, bool AlsoInProcess) {
   // TODO: Is the AlsoInProcess parameter still in use? It looks like it didn't
   // actually work as expected in the ORCv1 implementation.
   Expected<JITEvaluatedSymbol> Symbol = Jit->lookup(Name);
@@ -152,7 +151,7 @@ uint64_t IncrementalJIT::getSymbolAddress(const std::string& Name,
     return 0;
   }
 
-  return Symbol->getAddress();
+  return jitTargetAddressToPointer<void*>(Symbol->getAddress());
 }
 
 } // namespace cling
