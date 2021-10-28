@@ -14,17 +14,42 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <mutex>
+
 using namespace llvm;
 using namespace llvm::orc;
 
 namespace cling {
 
-IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
-                               std::unique_ptr<TargetMachine> TM,
-                               std::unique_ptr<llvm::orc::ExecutorProcessControl> EPC,
-                               ReadyForUnloadingCallback NotifyReadyForUnloading,
-                               Error &Err)
-    : NotifyReadyForUnloading(std::move(NotifyReadyForUnloading)), TM(std::move(TM)),
+/// Allows to skip the wrapped definition generator based on a shared flag in
+/// a single-threaded context.
+class SkippableDefinitionGeneratorWrapper : public DefinitionGenerator {
+public:
+  SkippableDefinitionGeneratorWrapper(
+      std::unique_ptr<DefinitionGenerator> DefGenerator,
+      SharedAtomicFlag SkipFlag)
+      : DefGenerator(std::move(DefGenerator)), SkipFlag(std::move(SkipFlag)) {}
+
+  Error tryToGenerate(LookupState& LS, LookupKind K, JITDylib& JD,
+                      JITDylibLookupFlags JDLookupFlags,
+                      const SymbolLookupSet& LookupSet) override {
+    if (SkipFlag)
+      return Error::success();
+    return DefGenerator->tryToGenerate(LS, K, JD, JDLookupFlags, LookupSet);
+  }
+
+private:
+  std::unique_ptr<DefinitionGenerator> DefGenerator;
+  SharedAtomicFlag SkipFlag;
+};
+
+IncrementalJIT::IncrementalJIT(
+    IncrementalExecutor& Executor, std::unique_ptr<TargetMachine> TM,
+    std::unique_ptr<llvm::orc::ExecutorProcessControl> EPC,
+    ReadyForUnloadingCallback NotifyReadyForUnloading, Error& Err)
+    : SkipHostProcessLookup(false),
+      NotifyReadyForUnloading(std::move(NotifyReadyForUnloading)),
+      TM(std::move(TM)),
       SingleThreadedContext(std::make_unique<LLVMContext>()) {
   ErrorAsOutParameter _(&Err);
 
@@ -67,14 +92,16 @@ IncrementalJIT::IncrementalJIT(IncrementalExecutor& Executor,
 
   // FIXME: Make host process symbol lookup optional on a per-query basis
   char LinkerPrefix = this->TM->createDataLayout().getGlobalPrefix();
-  Expected<std::unique_ptr<DynamicLibrarySearchGenerator>> InProcessLookup =
+  Expected<std::unique_ptr<DynamicLibrarySearchGenerator>> HostProcessLookup =
       DynamicLibrarySearchGenerator::GetForCurrentProcess(LinkerPrefix);
-  if (InProcessLookup) {
-    Jit->getMainJITDylib().addGenerator(std::move(*InProcessLookup));
-  } else {
-    Err = InProcessLookup.takeError();
+  if (!HostProcessLookup) {
+    Err = HostProcessLookup.takeError();
     return;
   }
+
+  Jit->getMainJITDylib().addGenerator(
+      std::make_unique<SkippableDefinitionGeneratorWrapper>(
+          std::move(*HostProcessLookup), SkipHostProcessLookup));
 }
 
 void IncrementalJIT::addModule(std::unique_ptr<Module> M) {
@@ -142,8 +169,10 @@ JITTargetAddress IncrementalJIT::addDefinition(StringRef LinkerMangledName,
 }
 
 void* IncrementalJIT::getSymbolAddress(StringRef Name, bool ExcludeHostSymbols) {
-  // TODO: Is the ExcludeHostSymbols parameter still in use? It looks like it
-  // didn't actually work as expected in the ORCv1 implementation.
+  std::unique_lock<SharedAtomicFlag> G(SkipHostProcessLookup, std::defer_lock);
+  if (ExcludeHostSymbols)
+    G.lock();
+
   Expected<JITEvaluatedSymbol> Symbol = Jit->lookup(Name);
   if (!Symbol) {
     logAllUnhandledErrors(Symbol.takeError(), errs(),

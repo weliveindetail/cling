@@ -19,6 +19,7 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Target/TargetMachine.h"
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -30,6 +31,23 @@ class IncrementalExecutor;
 
 using ReadyForUnloadingCallback =
     llvm::unique_function<void(const llvm::Module* M)>;
+
+class SharedAtomicFlag {
+public:
+  SharedAtomicFlag(bool UnlockedState)
+      : Lock(std::make_shared<std::atomic<bool>>(UnlockedState)),
+        LockedState(!UnlockedState) {}
+
+  // FIXME: We don't lock recursively. Can we assert it?
+  void lock() { Lock->store(LockedState); }
+  void unlock() { Lock->store(!LockedState); }
+
+  operator bool() const { return Lock->load(); }
+
+private:
+  std::shared_ptr<std::atomic<bool>> Lock;
+  const bool LockedState;
+};
 
 class IncrementalJIT {
 public:
@@ -61,6 +79,7 @@ public:
 private:
   std::unique_ptr<llvm::orc::LLJIT> Jit;
   llvm::orc::SymbolMap InjectedSymbols;
+  SharedAtomicFlag SkipHostProcessLookup;
 
   /// FIXME: If the relation between modules and transactions is a bijection, the
   /// mapping via module pointers here is unnecessary. The transaction should
