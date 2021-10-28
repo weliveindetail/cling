@@ -47,10 +47,10 @@ public:
   llvm::Expected<std::unique_ptr<llvm::Module>>
   removeModule(const llvm::Module* M);
 
-  /// Get the address of a symbol from the JIT or (optionally) the host process.
-  /// Use this to resolve symbols based on their IR names (as they are coming
-  /// from clang's mangler).
-  void* getSymbolAddress(llvm::StringRef Name, bool AlsoInProcess);
+  /// Get the address of a symbol based on its IR name (as coming from clang's
+  /// mangler). The ExcludeHostSymbols parameter controls whether the lookup
+  /// should include symbols from the host process or not.
+  void* getSymbolAddress(llvm::StringRef Name, bool ExcludeHostSymbols);
 
   /// Inject a symbol with a known address. Collisions will cause an error
   /// unless AcceptExisting = true.

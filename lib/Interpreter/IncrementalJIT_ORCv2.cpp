@@ -141,9 +141,9 @@ JITTargetAddress IncrementalJIT::addDefinition(StringRef LinkerMangledName,
   return KnownAddr;
 }
 
-void* IncrementalJIT::getSymbolAddress(StringRef Name, bool AlsoInProcess) {
-  // TODO: Is the AlsoInProcess parameter still in use? It looks like it didn't
-  // actually work as expected in the ORCv1 implementation.
+void* IncrementalJIT::getSymbolAddress(StringRef Name, bool ExcludeHostSymbols) {
+  // TODO: Is the ExcludeHostSymbols parameter still in use? It looks like it
+  // didn't actually work as expected in the ORCv1 implementation.
   Expected<JITEvaluatedSymbol> Symbol = Jit->lookup(Name);
   if (!Symbol) {
     logAllUnhandledErrors(Symbol.takeError(), errs(),

@@ -406,17 +406,15 @@ void IncrementalExecutor::addSymbol(const char* Name, void* Addr,
 
 void* IncrementalExecutor::getAddressOfGlobal(llvm::StringRef symbolName,
                                               bool* fromJIT /*=0*/) const {
-  // Return a symbol's address, and whether it was jitted.
-  void* address = m_JIT->getSymbolAddress(symbolName, true);
+  constexpr bool excludeHostSymbols = true;
+  if (void* addr = m_JIT->getSymbolAddress(symbolName, excludeHostSymbols)) {
+    // It's not from the JIT if it's in a dylib.
+    if (fromJIT)
+      *fromJIT = true;
+    return addr;
+  }
 
-  // It's not from the JIT if it's in a dylib.
-  if (fromJIT)
-    *fromJIT = !address;
-
-  if (!address)
-    return m_JIT->getSymbolAddress(symbolName, false /*no dlsym*/);
-
-  return address;
+  return m_JIT->getSymbolAddress(symbolName, !excludeHostSymbols);
 }
 
 void*
